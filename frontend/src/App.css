@@ -1,0 +1,54 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+
+textarea {
+  width: 800px; 
+  height: 480px; 
+  resize: none; 
+  padding: 12px; 
+  font-size: 18px;
+  border: 1px solid #ccc;
+  border-radius: 5px; 
+  box-sizing: border-box; 
+}
+
+.textarea-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center; 
+  width: auto; 
+  margin: 0 auto;
+}
+
+.buttons {
+  margin-top: 20px; 
+  display: flex;
+  gap: 10px; 
+  justify-content: center; 
+}
+
+input[type="file"],
+button {
+  background-color: #2d2d2d;
+  color: white;
+  padding: 10px 50px;
+  font-size: 16px; 
+  border: 1px;
+  border-radius: 5px; 
+  cursor: pointer; 
+}
+
+input[type="file"]:hover {
+  background-color: #2f728f; 
+}
+
+button:hover {
+  background-color: #2f728f; 
+  color: #e0e0e0; 
+}
