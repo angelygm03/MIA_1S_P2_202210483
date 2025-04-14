@@ -45,13 +45,13 @@ func Mkdisk(size int, fit string, unit string, path string) {
 
 	// Validate size > 0
 	if size <= 0 {
-		fmt.Println("Error: Size debe ser mayo a  0")
+		fmt.Println("Error: Size debe ser mayor a 0")
 		return
 	}
 
 	// Validate k - m
 	if unit != "k" && unit != "m" {
-		fmt.Println("Error: Las unidades validas son k o m")
+		fmt.Println("Error: Las unidades válidas son k o m")
 		return
 	}
 
@@ -69,7 +69,7 @@ func Mkdisk(size int, fit string, unit string, path string) {
 
 	// Convert size to bytes
 	if unit == "k" {
-		size = size * 1024 // 1 KB = 1024
+		size = size * 1024 // 1 KB = 1024 bytes
 	} else {
 		size = size * 1024 * 1024 // 1 MB = 1024 * 1024 bytes
 	}
@@ -77,20 +77,38 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	// Open bin file
 	file, err := FileManagement.OpenFile(path)
 	if err != nil {
+		fmt.Println("Error al abrir el archivo:", err)
 		return
 	}
+	defer file.Close()
 
-	//  === Write MBR ===
-	// Create array of byte(0)
-	for i := 0; i < size; i++ {
-		err := FileManagement.WriteObject(file, byte(0), int64(i))
-		if err != nil {
-			fmt.Println("Error: ", err)
+	// === Write MBR ===
+	// Create a buffer of 1 MB filled with zeros
+	zeroBlock := make([]byte, 1024*1024) // 1 MB block
+	remainingSize := size
+
+	// Write the zero blocks to the file
+	for remainingSize > 0 {
+		if remainingSize >= len(zeroBlock) {
+			_, err = file.Write(zeroBlock)
+			if err != nil {
+				fmt.Println("Error al escribir en el archivo:", err)
+				return
+			}
+			remainingSize -= len(zeroBlock)
+		} else {
+			// Write the remaining bytes
+			_, err = file.Write(zeroBlock[:remainingSize])
+			if err != nil {
+				fmt.Println("Error al escribir en el archivo:", err)
+				return
+			}
+			remainingSize = 0
 		}
 	}
 
-	// Create MRB
-	var newMRB DiskStruct.MRB       // Create a new MRB
+	// Create MBR
+	var newMRB DiskStruct.MRB       // Create a new MBR
 	newMRB.MbrSize = int32(size)    // Set the size
 	newMRB.Signature = rand.Int31() // Set the signature to a random number
 	copy(newMRB.Fit[:], fit)        // Set the fit
@@ -100,26 +118,23 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	formattedDate := currentTime.Format("2006-01-02")
 	copy(newMRB.CreationDate[:], formattedDate)
 
-	// Write the MRB
+	// Write the MBR
 	if err := FileManagement.WriteObject(file, newMRB, 0); err != nil {
+		fmt.Println("Error al escribir el MBR:", err)
 		return
 	}
 
 	// === Read MBR ===
 	var TempMBR DiskStruct.MRB
-	// Leer el archivo
 	if err := FileManagement.ReadObject(file, &TempMBR, 0); err != nil {
+		fmt.Println("Error al leer el MBR:", err)
 		return
 	}
 
 	// Print object
 	DiskStruct.PrintMBR(TempMBR)
 
-	// Cerrar el archivo
-	defer file.Close()
-
 	fmt.Println("======FIN MKDISK======")
-
 }
 
 // Fuction to remove a disk
