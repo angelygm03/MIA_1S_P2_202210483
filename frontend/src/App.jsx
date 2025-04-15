@@ -134,17 +134,60 @@ function App() {
           endpoint = "rmdisk";
 
         } else if (command.startsWith("fdisk")) {
-          let size = 0, unit = "k", path = "", type = "p", fit= "wf", name = "";
+          let size = 0, unit = "k", path = "", type = "p", fit = "wf", name = "", delete_ = "", add = 0;
+          let errors = [];
+        
           params.forEach(param => {
             if (param.startsWith("-size=")) size = parseInt(param.split("=")[1]);
             if (param.startsWith("-path=")) path = param.split("=")[1].replace(/"/g, '');
             if (param.startsWith("-name=")) name = param.split("=")[1].replace(/"/g, '');
             if (param.startsWith("-unit=")) unit = param.split("=")[1].toLowerCase();
             if (param.startsWith("-type=")) type = param.split("=")[1].toLowerCase();
-            if (param.startsWith("-fit="))  fit = param.split("=")[1].toLowerCase();
+            if (param.startsWith("-fit=")) fit = param.split("=")[1].toLowerCase();
+            if (param.startsWith("-delete=")) delete_ = param.split("=")[1].toLowerCase();
+            if (param.startsWith("-add=")) add = parseInt(param.split("=")[1]);
           });
-  
-          requestBody = { size, unit, path, type, fit, name};
+        
+          // Validate required parameters
+          if (!path) errors.push("El parámetro '-path' es obligatorio.");
+          if (!name) errors.push("El parámetro '-name' es obligatorio.");
+          
+          if (errors.length > 0) {
+            results.push(`Errores:\n- ${errors.join("\n- ")}`);
+            return;
+          }
+
+          // Validate -size for partition creation
+          if (!delete_ && add === 0 && size <= 0) {
+            errors.push("El parámetro '-size' es obligatorio y debe ser mayor a 0 al crear una partición.");
+          }
+        
+          // Validate -delete values
+          if (delete_ && delete_ !== "fast" && delete_ !== "full") {
+            errors.push("El parámetro '-delete' debe ser 'fast' o 'full'.");
+          }
+        
+          // Validate -unit for add or delete
+          if ((add !== 0 || delete_) && unit !== "k" && unit !== "m") {
+            errors.push("El parámetro '-unit' debe ser 'k' o 'm' cuando se utiliza '-add' o '-delete'.");
+          }
+        
+          // If errors are found, add them to the results and skip this command
+          if (errors.length > 0) {
+            results.push(`======================================================\nComando: ${command}\nErrores:\n- ${errors.join("\n- ")}\n======================================================\n`);
+            return;
+          }
+        
+          // Show confirmation dialog for delete
+          if (delete_) {
+            const confirmDelete = window.confirm(`¿Está seguro de que desea eliminar la partición '${name}'?`);
+            if (!confirmDelete) {
+              results.push("Operación cancelada por el usuario.");
+              return;
+            }
+          }
+        
+          requestBody = { size, unit, path, type, fit, name, delete: delete_, add };
           endpoint = "fdisk";
         
         } else if (command.startsWith("login")) {

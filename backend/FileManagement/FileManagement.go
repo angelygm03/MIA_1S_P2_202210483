@@ -247,3 +247,47 @@ func GenerateDiskReport(mbr DiskStruct.MRB, ebrs []DiskStruct.EBR, outputPath st
 	fmt.Println("Reporte DISK generado exitosamente en:", dotFilePath)
 	return nil
 }
+
+// Func to fill a section of the file with zeros
+func FillWithZeros(file *os.File, start int32, size int32) error {
+	// Point to the start of the section to fill
+	file.Seek(int64(start), 0)
+
+	// Create a buffer of zeros
+	buffer := make([]byte, size)
+
+	// Write the zeros to the file
+	_, err := file.Write(buffer)
+	if err != nil {
+		fmt.Println("Error al llenar el espacio con ceros:", err)
+		return err
+	}
+
+	fmt.Println("Espacio llenado con ceros desde el byte", start, "por", size, "bytes.")
+	return nil
+}
+
+// Func to verify if a section of the file is filled with zeros
+func VerifyZeros(file *os.File, start int32, size int32) {
+	zeros := make([]byte, size)
+	_, err := file.ReadAt(zeros, int64(start))
+	if err != nil {
+		fmt.Println("Error al leer la sección eliminada:", err)
+		return
+	}
+
+	// Check if the bytes are all zeros
+	isZeroFilled := true
+	for _, b := range zeros {
+		if b != 0 {
+			isZeroFilled = false
+			break
+		}
+	}
+
+	if isZeroFilled {
+		fmt.Println("La partición eliminada está completamente llena de ceros.")
+	} else {
+		fmt.Println("Advertencia: La partición eliminada no está completamente llena de ceros.")
+	}
+}

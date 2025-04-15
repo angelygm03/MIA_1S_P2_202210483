@@ -184,6 +184,8 @@ func fn_fdisk(input string) {
 	unit := fs.String("unit", "k", "Unidad")
 	type_ := fs.String("type", "p", "Tipo")
 	fit := fs.String("fit", "wf", "Ajuste")
+	delete_ := fs.String("delete", "", "Eliminar partición (fast o full)")
+	add := fs.Int("add", 0, "Agregar o quitar espacio")
 
 	fs.Parse(os.Args[1:])
 	matches := re.FindAllStringSubmatch(input, -1)
@@ -195,58 +197,75 @@ func fn_fdisk(input string) {
 		flagValue = strings.Trim(flagValue, "\"")
 
 		switch flagName {
-		case "size", "fit", "unit", "path", "name", "type":
+		case "size", "fit", "unit", "path", "name", "type", "delete", "add":
 			fs.Set(flagName, flagValue)
 		default:
-			fmt.Println("Error: Flag not found")
+			fmt.Println("Error: Flag no encontrada:", flagName)
+			return
 		}
 	}
 
-	if *size <= 0 {
-		fmt.Println("Error: Size must be greater than 0")
-		return
-	}
-
+	// Validate mandatory parameters
 	if *path == "" {
-		fmt.Println("Error: Path is required")
+		fmt.Println("Error: El parámetro '-path' es obligatorio.")
+		return
+	}
+	if *name == "" {
+		fmt.Println("Error: El parámetro '-name' es obligatorio.")
 		return
 	}
 
-	// If fit is empty, set it to "w"
-	if *fit == "" {
-		*fit = "wf"
+	// Validate -delete
+	if *delete_ != "" {
+		if *delete_ != "fast" && *delete_ != "full" {
+			fmt.Println("Error: El parámetro '-delete' debe ser 'fast' o 'full'.")
+			return
+		}
+		// Call the function to delete the partition
+		DiskControl.DeletePartition(*path, *name, *delete_)
+		return
 	}
 
-	//Fit must be 'bf', 'ff', or 'ww'
+	// Validate -add
+	if *add != 0 {
+		if *unit != "k" && *unit != "m" {
+			fmt.Println("Error: El parámetro '-unit' debe ser 'k' o 'm' cuando se utiliza '-add'.")
+			return
+		}
+		// Call the function to modify space to the partition
+		result := DiskControl.Fdisk(*size, *path, *name, *unit, *type_, *fit, "", 0)
+		if strings.HasPrefix(result, "Error:") {
+			fmt.Println(result)
+			return
+		}
+	}
+
+	// Validate -size
+	if *size <= 0 {
+		fmt.Println("Error: El parámetro '-size' es obligatorio y debe ser mayor a 0 al crear una partición.")
+		return
+	}
+
+	// Validate fit
 	if *fit != "bf" && *fit != "ff" && *fit != "wf" {
-		fmt.Println("Error: Fit must be 'bf', 'ff', or 'wf'")
+		fmt.Println("Error: El parámetro '-fit' debe ser 'bf', 'ff' o 'wf'.")
 		return
 	}
 
-	// If unit is empty, set it to "k"
-	if *unit == "" {
-		*unit = "k"
-	}
-
-	//Unit must be 'k', 'm'or 'b'
+	// Validate -unit
 	if *unit != "k" && *unit != "m" && *unit != "b" {
-		fmt.Println("Error: Unit must be 'b', 'm' or 'k'")
+		fmt.Println("Error: El parámetro '-unit' debe ser 'b', 'k' o 'm'.")
 		return
 	}
 
-	// If type is empty, set it to "p"
-	if *type_ == "" {
-		*type_ = "p"
-	}
-
-	// Type must be 'p', 'e', or 'l'
+	// Validate -type
 	if *type_ != "p" && *type_ != "e" && *type_ != "l" {
-		fmt.Println("Error: Type must be 'p', 'e', or 'l'")
+		fmt.Println("Error: El parámetro '-type' debe ser 'p', 'e' o 'l'.")
 		return
 	}
 
-	// Call the function
-	DiskControl.Fdisk(*size, *path, *name, *unit, *type_, *fit)
+	// Call the function to create the partition
+	DiskControl.Fdisk(*size, *path, *name, *unit, *type_, *fit, "", 0)
 }
 
 func fn_mount(params string) {

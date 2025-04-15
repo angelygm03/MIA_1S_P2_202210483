@@ -25,12 +25,14 @@ type RMDISKRequest struct {
 }
 
 type FDISKRequest struct {
-	Size int    `json:"size"`
-	Path string `json:"path"`
-	Name string `json:"name"`
-	Unit string `json:"unit"`
-	Type string `json:"type"`
-	Fit  string `json:"fit"`
+	Size   int    `json:"size"`
+	Path   string `json:"path"`
+	Name   string `json:"name"`
+	Unit   string `json:"unit"`
+	Type   string `json:"type"`
+	Fit    string `json:"fit"`
+	Delete string `json:"delete"`
+	Add    int    `json:"add"`
 }
 
 type MountRequest struct {
@@ -167,12 +169,63 @@ func createPartition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Solicitud recibida para crear partición:", req)
+	fmt.Println("Solicitud recibida para crear/modificar/eliminar partición:", req)
 
-	// Call the function to create the partition
-	result := DiskControl.Fdisk(req.Size, req.Path, req.Name, req.Unit, req.Type, req.Fit)
+	// Check the parameters
+	if req.Path == "" || req.Name == "" {
+		http.Error(w, "Error: Los parámetros 'path' y 'name' son obligatorios.", http.StatusBadRequest)
+		return
+	}
 
-	// Check if the result contains an error message
+	// Delete partition
+	if req.Delete != "" {
+		if req.Delete != "fast" && req.Delete != "full" {
+			http.Error(w, "Error: El parámetro 'delete' debe ser 'fast' o 'full'.", http.StatusBadRequest)
+			return
+		}
+		result, err := DiskControl.DeletePartition(req.Path, req.Name, req.Delete)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error al eliminar la partición: %v", err), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(result))
+		return
+	}
+
+	// Modify partition
+	if req.Add != 0 {
+		if req.Unit != "k" && req.Unit != "m" {
+			http.Error(w, "Error: El parámetro 'unit' debe ser 'k' o 'm' cuando se utiliza 'add'.", http.StatusBadRequest)
+			return
+		}
+		result, err := DiskControl.ModifyPartition(req.Path, req.Name, req.Add, req.Unit)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("No se ha podido modificar la partición: %v", err), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(result))
+		return
+	}
+
+	// Create partition
+	if req.Size <= 0 {
+		http.Error(w, "Error: El parámetro 'size' es obligatorio y debe ser mayor a 0 al crear una partición.", http.StatusBadRequest)
+		return
+	}
+
+	if req.Fit == "" {
+		req.Fit = "wf"
+	}
+	if req.Unit == "" {
+		req.Unit = "k"
+	}
+	if req.Type == "" {
+		req.Type = "p"
+	}
+
+	result := DiskControl.Fdisk(req.Size, req.Path, req.Name, req.Unit, req.Type, req.Fit, "", 0)
 	if strings.HasPrefix(result, "Error:") {
 		http.Error(w, result, http.StatusBadRequest)
 		return
