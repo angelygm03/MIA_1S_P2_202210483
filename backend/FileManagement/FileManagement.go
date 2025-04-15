@@ -1,7 +1,7 @@
 package FileManagement
 
 import (
-	"Proyecto1/backend/DiskStruct"
+	"Proyecto2/backend/DiskStruct"
 	"encoding/binary"
 	"fmt"
 	"os"

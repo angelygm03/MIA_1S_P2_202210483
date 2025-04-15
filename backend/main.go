@@ -1,10 +1,10 @@
 package main
 
 import (
-	"Proyecto1/backend/DiskCommands"
-	"Proyecto1/backend/DiskControl"
-	"Proyecto1/backend/FileSystem"
-	"Proyecto1/backend/UserManagement"
+	"Proyecto2/backend/DiskCommands"
+	"Proyecto2/backend/DiskControl"
+	"Proyecto2/backend/FileSystem"
+	"Proyecto2/backend/UserManagement"
 	"encoding/json"
 	"fmt"
 	"net/http"

@@ -1,9 +1,9 @@
 package FileSystem
 
 import (
-	"Proyecto1/backend/DiskControl"
-	"Proyecto1/backend/DiskStruct"
-	"Proyecto1/backend/FileManagement"
+	"Proyecto2/backend/DiskControl"
+	"Proyecto2/backend/DiskStruct"
+	"Proyecto2/backend/FileManagement"
 	"encoding/binary"
 	"fmt"
 	"os"

@@ -1,10 +1,10 @@
 package DiskCommands
 
 import (
-	"Proyecto1/backend/DiskControl"
-	"Proyecto1/backend/DiskStruct"
-	"Proyecto1/backend/FileManagement"
-	"Proyecto1/backend/UserManagement"
+	"Proyecto2/backend/DiskControl"
+	"Proyecto2/backend/DiskStruct"
+	"Proyecto2/backend/FileManagement"
+	"Proyecto2/backend/UserManagement"
 	"bufio"
 	"bytes"
 	"encoding/binary"
