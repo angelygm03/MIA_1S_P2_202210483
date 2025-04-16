@@ -52,3 +52,21 @@ button:hover {
   background-color: #2f728f; 
   color: #e0e0e0; 
 }
+
+.login-button {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  background-color: #2d2d2d;
+  color: white;
+  padding: 10px 40px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background-color: #2f728f;
+  color: #e0e0e0;
+}

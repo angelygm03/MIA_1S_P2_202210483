@@ -1,5 +1,7 @@
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { useState } from 'react';
 import './App.css';
+import LoginForm from './LoginForm';
 
 function App() {
   const [input, setInput] = useState('');
@@ -451,30 +453,49 @@ function App() {
       setOutput('');
     };
 
-  return (
-    <div className="container">
-      <h1>Sistema de Archivos EXT2</h1>
-      <div className="textarea-container">
-        <textarea
-          className="input-area"
-          placeholder="Ingrese comandos aquí..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        ></textarea>
-        <textarea
-          className="output-area"
-          placeholder="Salida..."
-          value={output}
-          readOnly
-        ></textarea>
-      </div>
-      <div className="buttons">
-        <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute}>Ejecutar</button>
-        <button onClick={handleClear}>Limpiar</button>
-      </div>
-    </div>
-  );
-}
-
-export default App;
+    return (
+      <Router>
+        <div className="container">
+          <Routes>
+            {/* Ruta principal */}
+            <Route
+              path="/"
+              element={
+                <>
+                  {/* Botón de login */}
+                  <Link to="/login">
+                    <button className="login-button">Login</button>
+                  </Link>
+                  <h1>Sistema de Archivos EXT2</h1>
+                  <div className="textarea-container">
+                    <textarea
+                      className="input-area"
+                      placeholder="Ingrese comandos aquí..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                    ></textarea>
+                    <textarea
+                      className="output-area"
+                      placeholder="Salida..."
+                      value={output}
+                      readOnly
+                    ></textarea>
+                  </div>
+                  <div className="buttons">
+                    <input type="file" accept=".smia" onChange={handleFileUpload} />
+                    <button onClick={handleExecute}>Ejecutar</button>
+                    <button onClick={handleClear}>Limpiar</button>
+                  </div>
+                </>
+              }
+            />
+  
+            {/* Ruta para el formulario de login */}
+            <Route path="/login" element={<LoginForm />} />
+          </Routes>
+        </div>
+      </Router>
+    );
+  }
+  
+  export default App;
