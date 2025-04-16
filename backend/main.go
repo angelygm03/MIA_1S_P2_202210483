@@ -649,6 +649,37 @@ func mkdirHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Directorio creado exitosamente"))
 }
 
+func unmountPartition(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("Solicitud recibida para desmontar partición:", req.ID)
+
+	message := DiskControl.Unmount(req.ID)
+
+	if strings.HasPrefix(message, "Error") {
+		http.Error(w, message, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(message))
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -672,6 +703,7 @@ func main() {
 	mux.HandleFunc("/mkfile", createFileHandler)
 	mux.HandleFunc("/cat", catFileHandler)
 	mux.HandleFunc("/mkdir", mkdirHandler)
+	mux.HandleFunc("/unmount", unmountPartition)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))

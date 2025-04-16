@@ -884,6 +884,41 @@ func Mount(path string, name string) string {
 	return fmt.Sprintf("Partition mounted successfully with ID: %s", partitionID)
 }
 
+func Unmount(id string) string {
+	fmt.Println("======Start UNMOUNT======")
+	fmt.Println("ID:", id)
+
+	// Find the mounted partition by ID
+	for diskID, partitions := range mountedPartitions {
+		for i, partition := range partitions {
+			if partition.ID == id {
+				// Change the status to '0' (unmounted)
+				mountedPartitions[diskID][i].Status = '0'
+				mountedPartitions[diskID][i].LoggedIn = false
+				mountedPartitions[diskID][i].ID = "" // Resetear el ID
+				fmt.Printf("Partición con ID %s desmontada exitosamente.\n", id)
+
+				// If there's only one partition mounted in the disk, remove the diskID from the map
+				if len(mountedPartitions[diskID]) == 1 {
+					delete(mountedPartitions, diskID)
+				} else {
+					mountedPartitions[diskID] = append(partitions[:i], partitions[i+1:]...)
+				}
+
+				fmt.Println("Estado actualizado de las particiones montadas:")
+				PrintMountedPartitions()
+
+				fmt.Println("======End UNMOUNT======")
+				return fmt.Sprintf("Partition with ID %s was unmounted successfully", id)
+			}
+		}
+	}
+
+	fmt.Printf("No se encontró la partición con ID %s.\n", id)
+	fmt.Println("======End UNMOUNT======")
+	return fmt.Sprintf("No se encontró la partición con ID %s.", id)
+}
+
 // Get the last disk ID
 func getLastDiskID() string {
 	var lastDiskID string

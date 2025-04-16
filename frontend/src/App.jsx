@@ -359,6 +359,22 @@ function App() {
           requestBody = files; 
           endpoint = "cat";
         
+        } else if (command.trim().toLowerCase().startsWith("unmount")) {
+          let id = "";
+          params.forEach(param => {
+            if (param.toLowerCase().startsWith("-id=")) {
+              id = param.split("=")[1].toLowerCase();
+            }
+          });
+        
+          if (!id) {
+            results.push(`Error: El parámetro '-id' es obligatorio para el comando 'unmount'.`);
+            continue;
+          }
+        
+          requestBody = { id };
+          endpoint = "unmount";
+        
         } else if (command.toLowerCase().startsWith("mkdir ")) {
           let path = "";
           let p = false;
