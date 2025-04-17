@@ -3,7 +3,7 @@
   margin: 50px auto;
   padding: 40px;
   border-radius: 15px;
-  background-color: #f2f2f2ca; 
+  background-color: #f2f2f2b7; 
   border: 1px solid #d9d9d9; 
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); 
   text-align: center;
@@ -23,10 +23,10 @@
 
 .form-group label {
   display: block;
-  margin-bottom: 10px; 
-  font-size: 18px; 
+  margin-bottom: 4px; 
+  font-size: 16px; 
   font-weight: 600;
-  color: #555555;
+  color: #333333;
 }
 
 .form-group input {
@@ -73,11 +73,11 @@
 }
 
 .form-buttons button:last-child {
-  background-color: #e0e0e0; 
+  background-color: #e0e0e0be; 
   color: #333333;
 }
 
 .form-buttons button:last-child:hover {
-  background-color: #d6d6d6; 
+  background-color: #d6d6d6b9; 
   transform: scale(1.05);
 }
