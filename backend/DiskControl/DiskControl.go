@@ -134,6 +134,14 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	// Print object
 	DiskStruct.PrintMBR(TempMBR)
 
+	createdDisks[path] = DiskInfo{
+		Path:       path,
+		Size:       size,
+		Unit:       unit,
+		Fit:        fit,
+		Partitions: []MountedPartition{},
+	}
+
 	fmt.Println("======FIN MKDISK======")
 }
 
@@ -971,4 +979,19 @@ func MarkPartitionAsLoggedOut(id string) {
 		}
 	}
 	fmt.Printf("No se encontró la partición con ID %s para marcarla como deslogueada.\n", id)
+}
+
+type DiskInfo struct {
+	Path       string
+	Size       int
+	Unit       string
+	Fit        string
+	Partitions []MountedPartition // Mounted partitions
+}
+
+// Global variable to store created disks
+var createdDisks = make(map[string]DiskInfo)
+
+func GetCreatedDisks() map[string]DiskInfo {
+	return createdDisks
 }

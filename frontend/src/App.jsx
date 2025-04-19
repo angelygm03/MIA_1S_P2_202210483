@@ -1,11 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { useState } from 'react';
 import './App.css';
-import LoginForm from './LoginForm';
+import Navbar from "./Navbar";
+import LoginForm from "./LoginForm";
+import DiskViewer from "./DiskViewer";
 
 function App() {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
+  const [selectedDisk, setSelectedDisk] = useState(null);
 
   const handleExecute = async () => {
     try {
@@ -453,20 +456,23 @@ function App() {
       setOutput('');
     };
 
+    const handleSelectDisk = (disk) => {
+      setSelectedDisk(disk);
+      console.log(`Disco seleccionado: ${disk}`);
+    };
+
     return (
       <Router>
         <div className="container">
+          <Navbar /> {/* Navbar fija en la parte superior */}
           <Routes>
             {/* Ruta principal */}
             <Route
               path="/"
               element={
                 <>
-                  {/* Botón de login */}
-                  <Link to="/login">
-                    <button className="login-button">Login</button>
-                  </Link>
                   <h1>Sistema de Archivos EXT2</h1>
+                  {selectedDisk && <p>Disco seleccionado: {selectedDisk}</p>}
                   <div className="textarea-container">
                     <textarea
                       className="input-area"
@@ -488,6 +494,12 @@ function App() {
                   </div>
                 </>
               }
+            />
+  
+            {/* Ruta para el visualizador de discos */}
+            <Route
+              path="/disks"
+              element={<DiskViewer onSelectDisk={handleSelectDisk} />}
             />
   
             {/* Ruta para el formulario de login */}

@@ -1,14 +1,14 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   text-align: center;
 }
 
 
 textarea {
   width: 800px; 
-  height: 480px; 
+  height: 380px; 
   resize: none; 
   padding: 12px; 
   font-size: 18px;
@@ -69,4 +69,18 @@ button:hover {
 .login-button:hover {
   background-color: #2f728f;
   color: #e0e0e0;
+}
+
+.disks-button {
+  margin: 10px;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.disks-button:hover {
+  background-color: #45a049;
 }

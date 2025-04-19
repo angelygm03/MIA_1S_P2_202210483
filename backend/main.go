@@ -680,6 +680,28 @@ func unmountPartition(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(message))
 }
 
+func listCreatedDisksHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Convert the data to JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(DiskControl.GetCreatedDisks()); err != nil {
+		http.Error(w, "Error al generar JSON", http.StatusInternalServerError)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -704,6 +726,7 @@ func main() {
 	mux.HandleFunc("/cat", catFileHandler)
 	mux.HandleFunc("/mkdir", mkdirHandler)
 	mux.HandleFunc("/unmount", unmountPartition)
+	mux.HandleFunc("/list-disks", listCreatedDisksHandler)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))
