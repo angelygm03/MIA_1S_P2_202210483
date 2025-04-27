@@ -207,13 +207,14 @@ function App() {
           endpoint = "login";
         
         } else if (command.startsWith("mkfs")) {
-          let id = "", type = "full"; 
+          let id = "", type = "full", fs = "2fs";
           params.forEach(param => {
             if (param.startsWith("-id=")) id = param.split("=")[1].toLowerCase();
             if (param.startsWith("-type=")) type = param.split("=")[1].toLowerCase();
+            if (param.startsWith("-fs=")) fs = param.split("=")[1].toLowerCase();
           });
         
-          requestBody = { id, type};
+          requestBody = { id, type, fs };
           endpoint = "mkfs";
         
         } else if (command.startsWith("logout")) {

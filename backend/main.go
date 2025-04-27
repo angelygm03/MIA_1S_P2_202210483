@@ -50,6 +50,7 @@ type ReportRequest struct {
 type MkfsRequest struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
+	Fs   string `json:"fs"`
 }
 
 type LoginRequest struct {
@@ -318,12 +319,20 @@ func formatMkfs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("Solicitud recibida para formatear partición:", req)
-	fsType := "2fs"
 
-	FileSystem.Mkfs(req.Id, req.Type, fsType)
+	if req.Fs == "" {
+		req.Fs = "2fs"
+	}
+
+	if req.Fs != "2fs" && req.Fs != "3fs" {
+		http.Error(w, "Error: El parámetro 'fs' debe ser '2fs' o '3fs'.", http.StatusBadRequest)
+		return
+	}
+
+	FileSystem.Mkfs(req.Id, req.Type, req.Fs)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Partition formatted successfully with id %s", req.Id)))
+	w.Write([]byte(fmt.Sprintf("Partition formatted successfully with id %s using %s", req.Id, req.Fs)))
 }
 
 func loginUser(w http.ResponseWriter, r *http.Request) {

@@ -129,8 +129,10 @@ func Mkfs(id string, type_ string, fs_ string) {
 
 	if fs_ == "2fs" {
 		create_ext2(n, TempMBR.Partitions[index], newSuperblock, DateString, file)
+	} else if fs_ == "3fs" {
+		create_ext3(n, TempMBR.Partitions[index], newSuperblock, DateString, file)
 	} else {
-		fmt.Println("EXT3 no está soportado.")
+		fmt.Println("Error: Sistema de archivos no soportado.")
 	}
 
 	defer file.Close()
@@ -325,5 +327,97 @@ func markUsedInodesAndBlocks(newSuperblock DiskStruct.Superblock, file *os.File)
 	if err := FileManagement.WriteObject(file, byte(1), int64(newSuperblock.S_bm_block_start+1)); err != nil {
 		return err
 	}
+	return nil
+}
+
+func create_ext3(n int32, partition DiskStruct.Partition, newSuperblock DiskStruct.Superblock, date string, file *os.File) {
+	fmt.Println("======Start CREATE EXT3======")
+	fmt.Println("INODOS:", n)
+
+	DiskStruct.PrintSuperblock(newSuperblock)
+	fmt.Println("Date:", date)
+
+	// Init journaling
+	if err := initJournaling(newSuperblock, file); err != nil {
+		fmt.Println("Error al inicializar el Journaling: ", err)
+		return
+	}
+	fmt.Println("Journaling inicializado correctamente.")
+
+	// Write the bitmaps blocks and inodes to the file
+	for i := int32(0); i < n; i++ {
+		if err := FileManagement.WriteObject(file, byte(0), int64(newSuperblock.S_bm_inode_start+i)); err != nil {
+			fmt.Println("Error: ", err)
+			return
+		}
+	}
+	fmt.Println("Bitmap de inodos escrito correctamente.")
+
+	for i := int32(0); i < 3*n; i++ {
+		if err := FileManagement.WriteObject(file, byte(0), int64(newSuperblock.S_bm_block_start+i)); err != nil {
+			fmt.Println("Error: ", err)
+			return
+		}
+	}
+	fmt.Println("Bitmap de bloques escrito correctamente.")
+
+	// Init inodes and blocks
+	if err := initInodesAndBlocks(n, newSuperblock, file); err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	fmt.Println("Inodos y bloques inicializados correctamente.")
+
+	// Create the root folder and the users.txt file
+	if err := createRootAndUsersFile(newSuperblock, date, file); err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	fmt.Println("Carpeta raíz y archivo users.txt creados correctamente.")
+
+	// Write the superblock to the file
+	if err := FileManagement.WriteObject(file, newSuperblock, int64(partition.Start)); err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	fmt.Println("Superbloque escrito correctamente.")
+
+	// Mark the inodes and blocks as used
+	if err := markUsedInodesAndBlocks(newSuperblock, file); err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	fmt.Println("Inodos y bloques iniciales marcados como usados correctamente.")
+
+	for i := int32(0); i < 1; i++ {
+		var fileblock DiskStruct.Fileblock
+		offset := int64(newSuperblock.S_block_start + int32(binary.Size(DiskStruct.Folderblock{})) + i*int32(binary.Size(DiskStruct.Fileblock{})))
+		if err := FileManagement.ReadObject(file, &fileblock, offset); err != nil {
+			fmt.Println("Error al leer Fileblock: ", err)
+			return
+		}
+		DiskStruct.PrintFileblock(fileblock)
+	}
+	fmt.Println("Fileblocks impresos correctamente.")
+
+	fmt.Println("======End CREATE EXT3======")
+}
+
+func initJournaling(newSuperblock DiskStruct.Superblock, file *os.File) error {
+	var journaling DiskStruct.Journaling
+	journaling.Size = 50
+	journaling.Ultimo = 0
+
+	// Position to write the journaling
+	journalingStart := newSuperblock.S_inode_start - int32(binary.Size(DiskStruct.Journaling{}))*journaling.Size
+
+	// Write the journaling to the file
+	for i := 0; i < 50; i++ {
+		if err := FileManagement.WriteObject(file, journaling, int64(journalingStart+int32(i*binary.Size(journaling)))); err != nil {
+			return fmt.Errorf("error al inicializar el journaling: %v", err)
+		}
+	}
+
+	fmt.Println("Journaling inicializado correctamente.")
 	return nil
 }
