@@ -711,7 +711,41 @@ func listCreatedDisksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func recoveryHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var req struct {
+		Id string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("Solicitud recibida para recuperación del sistema de archivos:", req)
+
+	result := FileSystem.Recovery(req.Id)
+	if strings.HasPrefix(result, "Error:") {
+		http.Error(w, result, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(result))
+}
+
 func main() {
+	// Load the mounted partitions
+	if err := DiskControl.LoadMountedPartitions(); err != nil {
+		fmt.Println("Error al cargar el estado de las particiones montadas:", err)
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -736,6 +770,7 @@ func main() {
 	mux.HandleFunc("/mkdir", mkdirHandler)
 	mux.HandleFunc("/unmount", unmountPartition)
 	mux.HandleFunc("/list-disks", listCreatedDisksHandler)
+	mux.HandleFunc("/recovery", recoveryHandler)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))

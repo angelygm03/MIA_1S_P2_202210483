@@ -4,6 +4,7 @@ import (
 	"Proyecto2/backend/DiskControl"
 	"Proyecto2/backend/DiskStruct"
 	"Proyecto2/backend/FileManagement"
+	"Proyecto2/backend/UserManagement"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -17,11 +18,7 @@ func Mkfs(id string, type_ string, fs_ string) {
 	fmt.Println("Type:", type_)
 	fmt.Println("Fs:", fs_)
 
-	if type_ == "" {
-		type_ = "full"
-	}
-
-	// Look for the partition with the given id
+	// Find the mounted partition with the ID
 	var mountedPartition DiskControl.MountedPartition
 	var partitionFound bool
 
@@ -39,25 +36,27 @@ func Mkfs(id string, type_ string, fs_ string) {
 	}
 
 	if !partitionFound {
-		fmt.Println("Particion no encontrada")
+		fmt.Println("Partición no encontrada")
 		return
 	}
 
-	// If the partition is not 1, it's not mounted
-	if mountedPartition.Status != '1' {
-		fmt.Println("La particion aun no esta montada")
+	if mountedPartition.Status != '1' { // Check if the partition is mounted
+		fmt.Println("La partición aún no está montada")
 		return
 	}
 
 	// Open bin file
 	file, err := FileManagement.OpenFile(mountedPartition.Path)
 	if err != nil {
+		fmt.Println("Error al abrir el archivo:", err)
 		return
 	}
+	defer file.Close()
 
 	var TempMBR DiskStruct.MRB
-	// Read object
+	// Read the MBR
 	if err := FileManagement.ReadObject(file, &TempMBR, 0); err != nil {
+		fmt.Println("Error al leer el MBR:", err)
 		return
 	}
 
@@ -66,7 +65,7 @@ func Mkfs(id string, type_ string, fs_ string) {
 	fmt.Println("-------------")
 
 	var index int = -1
-	// Find the partition with the given id
+	// Find the partition in the MBR
 	for i := 0; i < 4; i++ {
 		if TempMBR.Partitions[i].Size != 0 {
 			if strings.Contains(string(TempMBR.Partitions[i].Id[:]), id) {
@@ -79,63 +78,65 @@ func Mkfs(id string, type_ string, fs_ string) {
 	if index != -1 {
 		DiskStruct.PrintPartition(TempMBR.Partitions[index])
 	} else {
-		fmt.Println("Particion no encontrada (EBR)")
+		fmt.Println("Partición no encontrada (EBR)")
 		return
 	}
 
-	//------> Calculating the number of inodes and blocks <------
+	// Calculate the number of inodes
 	numerador := int32(TempMBR.Partitions[index].Size - int32(binary.Size(DiskStruct.Superblock{})))
 	denominador_base := int32(4 + int32(binary.Size(DiskStruct.Inode{})) + 3*int32(binary.Size(DiskStruct.Fileblock{})))
 	var temp int32 = 0
-	if fs_ == "2fs" {
+
+	// Add journaling size for EXT3
+	if fs_ == "3fs" {
+		temp = int32(binary.Size(DiskStruct.Journaling{}))
+	} else if fs_ == "2fs" {
 		temp = 0
 	} else {
-		fmt.Print("Error por el momento solo está disponible 2FS.")
+		fmt.Println("Error: Sólo están disponibles los sistemas de archivos 2FS y 3FS.")
+		return
 	}
+
 	denominador := denominador_base + temp
 	n := int32(numerador / denominador)
 
 	fmt.Println("INODOS:", n)
 
-	// Crear el Superblock con todos los campos calculados
+	// Create the superblock
 	var newSuperblock DiskStruct.Superblock
-	newSuperblock.S_filesystem_type = 2         // 2 for EXT2
-	newSuperblock.S_inodes_count = n            // Number of inodes
-	newSuperblock.S_blocks_count = 3 * n        // Number of blocks
-	newSuperblock.S_free_blocks_count = 3*n - 2 // Number of free blocks
-	newSuperblock.S_free_inodes_count = n - 2   // Number of free inodes
+	if fs_ == "2fs" {
+		newSuperblock.S_filesystem_type = 2 // EXT2
+	} else if fs_ == "3fs" {
+		newSuperblock.S_filesystem_type = 3 // EXT3
+	}
+	newSuperblock.S_inodes_count = n
+	newSuperblock.S_blocks_count = 3 * n
+	newSuperblock.S_free_blocks_count = 3*n - 2
+	newSuperblock.S_free_inodes_count = n - 2
 
-	//Dinamic date
+	// Date and time
 	CurrentDate := time.Now()
 	DateString := CurrentDate.Format("2006-01-02 15:04:05")
-	// Clean the date fields
-	copy(newSuperblock.S_mtime[:], []byte{})
-	copy(newSuperblock.S_umtime[:], []byte{})
+	copy(newSuperblock.S_mtime[:], DateString)
+	copy(newSuperblock.S_umtime[:], DateString)
 
-	// Set the date fields
-	copy(newSuperblock.S_mtime[:], []byte(DateString))  // Last mount date
-	copy(newSuperblock.S_umtime[:], []byte(DateString)) // Last unmount date
+	newSuperblock.S_mnt_count = 1
+	newSuperblock.S_magic = 0xEF53
+	newSuperblock.S_inode_size = int32(binary.Size(DiskStruct.Inode{}))
+	newSuperblock.S_block_size = int32(binary.Size(DiskStruct.Fileblock{}))
 
-	newSuperblock.S_mnt_count = 1                                           // Number of mounts
-	newSuperblock.S_magic = 0xEF53                                          // Magic number
-	newSuperblock.S_inode_size = int32(binary.Size(DiskStruct.Inode{}))     // Inode size
-	newSuperblock.S_block_size = int32(binary.Size(DiskStruct.Fileblock{})) // Block size
-
-	// Calculate the start of the bitmaps, inodes and blocks
+	// Calculate the start positions
 	newSuperblock.S_bm_inode_start = TempMBR.Partitions[index].Start + int32(binary.Size(DiskStruct.Superblock{}))
 	newSuperblock.S_bm_block_start = newSuperblock.S_bm_inode_start + n
 	newSuperblock.S_inode_start = newSuperblock.S_bm_block_start + 3*n
 	newSuperblock.S_block_start = newSuperblock.S_inode_start + n*newSuperblock.S_inode_size
 
+	// Call the function to create the filesystem
 	if fs_ == "2fs" {
 		create_ext2(n, TempMBR.Partitions[index], newSuperblock, DateString, file)
 	} else if fs_ == "3fs" {
 		create_ext3(n, TempMBR.Partitions[index], newSuperblock, DateString, file)
-	} else {
-		fmt.Println("Error: Sistema de archivos no soportado.")
 	}
-
-	defer file.Close()
 
 	fmt.Println("======FIN MKFS======")
 }
@@ -420,4 +421,113 @@ func initJournaling(newSuperblock DiskStruct.Superblock, file *os.File) error {
 
 	fmt.Println("Journaling inicializado correctamente.")
 	return nil
+}
+
+func Recovery(id string) string {
+	fmt.Println("======Start RECOVERY======")
+	fmt.Println("Id:", id)
+
+	// Find the mounted partition with the ID
+	var mountedPartition DiskControl.MountedPartition
+	var partitionFound bool
+
+	for _, partitions := range DiskControl.GetMountedPartitions() {
+		for _, partition := range partitions {
+			if partition.ID == id {
+				mountedPartition = partition
+				partitionFound = true
+				break
+			}
+		}
+		if partitionFound {
+			break
+		}
+	}
+
+	if !partitionFound {
+		fmt.Println("Error: No se encontró la partición con el ID proporcionado.")
+		return "Error: No se encontró la partición con el ID proporcionado."
+	}
+
+	// Open the file
+	file, err := FileManagement.OpenFile(mountedPartition.Path)
+	if err != nil {
+		fmt.Println("Error: No se pudo abrir el archivo:", err)
+		return "Error: No se pudo abrir el archivo."
+	}
+	defer file.Close()
+
+	// Read the MBR
+	var TempMBR DiskStruct.MRB
+	if err := FileManagement.ReadObject(file, &TempMBR, 0); err != nil {
+		fmt.Println("Error: No se pudo leer el MBR:", err)
+		return "Error: No se pudo leer el MBR."
+	}
+
+	// Find the partition in the MBR
+	var partition DiskStruct.Partition
+	var partitionIndex int = -1
+	for i := 0; i < 4; i++ {
+		if string(TempMBR.Partitions[i].Id[:]) == id {
+			partition = TempMBR.Partitions[i]
+			partitionIndex = i
+			break
+		}
+	}
+
+	if partitionIndex == -1 {
+		fmt.Println("Error: No se encontró la partición en el MBR.")
+		return "Error: No se encontró la partición en el MBR."
+	}
+
+	fmt.Printf("Partición encontrada en el índice: %d\n", partitionIndex)
+
+	if partition.Size == 0 {
+		fmt.Println("Error: No se encontró la partición en el MBR.")
+		return "Error: No se encontró la partición en el MBR."
+	}
+
+	// Read the superblock
+	var superblock DiskStruct.Superblock
+	if err := FileManagement.ReadObject(file, &superblock, int64(partition.Start)); err != nil {
+		fmt.Println("Error: No se pudo leer el superbloque:", err)
+		return "Error: No se pudo leer el superbloque."
+	}
+
+	// Check if the partition is EXT3
+	if superblock.S_filesystem_type != 3 {
+		fmt.Println("Error: La partición no utiliza el sistema de archivos EXT3.")
+		return "Error: La partición no utiliza el sistema de archivos EXT3."
+	}
+
+	// Read the journaling
+	var journalingStart = superblock.S_inode_start - int32(binary.Size(DiskStruct.Journaling{}))*50
+	for i := 0; i < 50; i++ {
+		var journalEntry DiskStruct.Content_J
+		offset := int64(journalingStart + int32(i*binary.Size(journalEntry)))
+		if err := FileManagement.ReadObject(file, &journalEntry, offset); err != nil {
+			fmt.Println("Error al leer el journaling:", err)
+			break
+		}
+
+		// If the operation is empty, break the loop
+		if string(journalEntry.Operation[:]) == "" {
+			break
+		}
+
+		// Process the journal entry
+		fmt.Printf("Recuperando operación: %s, Ruta: %s, Contenido: %s\n",
+			string(journalEntry.Operation[:]),
+			string(journalEntry.Path[:]),
+			string(journalEntry.Content[:]))
+
+		if string(journalEntry.Operation[:]) == "mkfile" {
+			UserManagement.Mkfile(string(journalEntry.Path[:]), false, len(string(journalEntry.Content[:])), "")
+		} else if string(journalEntry.Operation[:]) == "mkdir" {
+			UserManagement.Mkdir(string(journalEntry.Path[:]), false)
+		}
+	}
+
+	fmt.Println("Recuperación completada exitosamente.")
+	return "Recuperación completada exitosamente."
 }

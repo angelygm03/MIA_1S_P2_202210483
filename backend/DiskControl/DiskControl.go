@@ -5,7 +5,9 @@ import (
 	"Proyecto2/backend/FileManagement"
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -874,6 +876,11 @@ func Mount(path string, name string) string {
 		Status: '1',
 	})
 
+	// Save the mounted partitions state
+	if err := SaveMountedPartitions(); err != nil {
+		fmt.Println("Error al guardar el estado de las particiones montadas:", err)
+	}
+
 	// Writing the updated MBR to the file
 	if err := FileManagement.WriteObject(file, TempMBR, 0); err != nil {
 		fmt.Println("Error: No se pudo sobrescribir el MBR en el archivo")
@@ -911,6 +918,11 @@ func Unmount(id string) string {
 					delete(mountedPartitions, diskID)
 				} else {
 					mountedPartitions[diskID] = append(partitions[:i], partitions[i+1:]...)
+				}
+
+				// save the state of mounted partitions
+				if err := SaveMountedPartitions(); err != nil {
+					fmt.Println("Error al guardar el estado de las particiones montadas:", err)
 				}
 
 				fmt.Println("Estado actualizado de las particiones montadas:")
@@ -960,6 +972,11 @@ func MarkPartitionAsLoggedIn(id string) {
 			if partition.ID == id {
 				mountedPartitions[diskID][i].LoggedIn = true
 				fmt.Printf("Partición con ID %s marcada como logueada.\n", id)
+
+				// Save the state of mounted partitions
+				if err := SaveMountedPartitions(); err != nil {
+					fmt.Println("Error al guardar el estado de las particiones montadas:", err)
+				}
 				return
 			}
 		}
@@ -994,4 +1011,24 @@ var createdDisks = make(map[string]DiskInfo)
 
 func GetCreatedDisks() map[string]DiskInfo {
 	return createdDisks
+}
+
+const mountedPartitionsFile = "mounted_partitions.json"
+
+// Save the state of mounted partitions to a JSON file
+func SaveMountedPartitions() error {
+	data, err := json.Marshal(mountedPartitions)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(mountedPartitionsFile, data, 0644)
+}
+
+// Load the state of mounted partitions from a JSON file
+func LoadMountedPartitions() error {
+	data, err := ioutil.ReadFile(mountedPartitionsFile)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, &mountedPartitions)
 }

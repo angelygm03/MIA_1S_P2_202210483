@@ -381,6 +381,20 @@ function App() {
           requestBody = { id };
           endpoint = "unmount";
         
+        } else if (command.startsWith("recovery")) {
+          let id = "";
+          params.forEach(param => {
+            if (param.startsWith("-id=")) id = param.split("=")[1].toLowerCase();
+          });
+        
+          if (!id) {
+            results.push(`Error: El parámetro '-id' es obligatorio para el comando 'recovery'.`);
+            return;
+          }
+        
+          requestBody = { id };
+          endpoint = "recovery";
+        
         } else if (command.toLowerCase().startsWith("mkdir ")) {
           let path = "";
           let p = false;
