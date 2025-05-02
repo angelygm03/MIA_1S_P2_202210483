@@ -395,6 +395,20 @@ function App() {
           requestBody = { id };
           endpoint = "recovery";
         
+        } else if (command.startsWith("loss")) {
+          let id = "";
+          params.forEach(param => {
+            if (param.startsWith("-id=")) id = param.split("=")[1].toLowerCase();
+          });
+        
+          if (!id) {
+            results.push(`Error: El parámetro '-id' es obligatorio para el comando 'loss'.`);
+            return;
+          }
+        
+          requestBody = { id };
+          endpoint = "loss";
+
         } else if (command.toLowerCase().startsWith("mkdir ")) {
           let path = "";
           let p = false;

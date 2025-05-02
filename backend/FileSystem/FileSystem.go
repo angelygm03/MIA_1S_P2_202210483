@@ -531,3 +531,80 @@ func Recovery(id string) string {
 	fmt.Println("Recuperación completada exitosamente.")
 	return "Recuperación completada exitosamente."
 }
+
+func Loss(id string) string {
+	fmt.Println("====== Start LOSS ======")
+	fmt.Println("Id:", id)
+
+	// Find the mounted partition with the ID
+	var mountedPartition DiskControl.MountedPartition
+	var partitionFound bool
+
+	for _, partitions := range DiskControl.GetMountedPartitions() {
+		for _, partition := range partitions {
+			if partition.ID == id {
+				mountedPartition = partition
+				partitionFound = true
+				break
+			}
+		}
+		if partitionFound {
+			break
+		}
+	}
+
+	if !partitionFound {
+		fmt.Println("Error: No se encontró la partición con el ID proporcionado.")
+		return "Error: No se encontró la partición con el ID proporcionado."
+	}
+
+	// Open bin file
+	file, err := FileManagement.OpenFile(mountedPartition.Path)
+	if err != nil {
+		fmt.Println("Error: No se pudo abrir el archivo:", err)
+		return "Error: No se pudo abrir el archivo."
+	}
+	defer file.Close()
+
+	// Read the MBR
+	var TempMBR DiskStruct.MRB
+	if err := FileManagement.ReadObject(file, &TempMBR, 0); err != nil {
+		fmt.Println("Error: No se pudo leer el MBR:", err)
+		return "Error: No se pudo leer el MBR."
+	}
+
+	// Find the partition in the MBR
+	var partition DiskStruct.Partition
+	var partitionIndex int = -1
+	for i := 0; i < 4; i++ {
+		if string(TempMBR.Partitions[i].Id[:]) == id {
+			partition = TempMBR.Partitions[i]
+			partitionIndex = i
+			break
+		}
+	}
+
+	if partitionIndex == -1 {
+		fmt.Println("Error: No se encontró la partición en el MBR.")
+		return "Error: No se encontró la partición en el MBR."
+	}
+
+	fmt.Printf("Partición encontrada en el índice: %d\n", partitionIndex)
+
+	// Read the superblock
+	var superblock DiskStruct.Superblock
+	if err := FileManagement.ReadObject(file, &superblock, int64(partition.Start)); err != nil {
+		fmt.Println("Error: No se pudo leer el superbloque:", err)
+		return "Error: No se pudo leer el superbloque."
+	}
+
+	// Clean the data blocks to simulate file system loss
+	fmt.Println("Limpiando bloques de datos para simular pérdida del sistema de archivos...")
+	FileManagement.FillWithZeros(file, superblock.S_bm_inode_start, superblock.S_bm_block_start-superblock.S_bm_inode_start) // Bitmap of inodos
+	FileManagement.FillWithZeros(file, superblock.S_bm_block_start, superblock.S_inode_start-superblock.S_bm_block_start)    // Bitmap of blocks
+	FileManagement.FillWithZeros(file, superblock.S_inode_start, superblock.S_block_start-superblock.S_inode_start)          // Inodes
+	FileManagement.FillWithZeros(file, superblock.S_block_start, partition.Size-(superblock.S_block_start-partition.Start))  // Blocks
+
+	fmt.Println("Simulación de pérdida completada.")
+	return "Simulación de pérdida completada."
+}

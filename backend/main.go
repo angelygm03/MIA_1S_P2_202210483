@@ -741,6 +741,36 @@ func recoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
+func lossHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	var req struct {
+		Id string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println("Solicitud recibida para simular pérdida del sistema de archivos:", req)
+
+	result := FileSystem.Loss(req.Id)
+	if strings.HasPrefix(result, "Error:") {
+		http.Error(w, result, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(result))
+}
+
 func main() {
 	// Load the mounted partitions
 	if err := DiskControl.LoadMountedPartitions(); err != nil {
@@ -771,6 +801,7 @@ func main() {
 	mux.HandleFunc("/unmount", unmountPartition)
 	mux.HandleFunc("/list-disks", listCreatedDisksHandler)
 	mux.HandleFunc("/recovery", recoveryHandler)
+	mux.HandleFunc("/loss", lossHandler)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))
