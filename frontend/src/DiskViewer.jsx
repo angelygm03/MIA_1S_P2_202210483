@@ -5,7 +5,8 @@ import diskImage from "./assets/hdd.png";
 
 function DiskViewer({ onSelectDisk }) {
   const [disks, setDisks] = useState([]);
-  const navigate = useNavigate(); 
+  const [expandedDisk, setExpandedDisk] = useState(null); // State to track which disk is expanded
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDisks = async () => {
@@ -14,64 +15,71 @@ function DiskViewer({ onSelectDisk }) {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-    
-        console.log("Estado de la respuesta:", response.status);
+
         if (!response.ok) {
           throw new Error("Error al obtener la lista de discos");
         }
-    
+
         const data = await response.json();
-        console.log("Datos recibidos del backend:", data); 
-        setDisks(data);
+        setDisks(data); //Overwrite disks with the new data
       } catch (error) {
         console.error("Error al obtener discos:", error);
       }
     };
 
     fetchDisks();
-  
+
     const interval = setInterval(fetchDisks, 3000);
-  
+
     return () => clearInterval(interval);
   }, []);
 
-  const handleDiskClick = (disk) => {
-    onSelectDisk(disk); 
-    navigate("/"); 
+  const handleDiskClick = (diskPath) => {
+    setExpandedDisk(expandedDisk === diskPath ? null : diskPath); // Alternar entre expandido y colapsado
+  };
+
+  const handlePartitionClick = (partition) => {
+    onSelectDisk(partition);
+    navigate("/");
   };
 
   return (
     <div className="disk-viewer-container">
       <h1>Visualizador de Discos</h1>
       {Object.keys(disks).length === 0 ? (
-        <p>No hay discos montados.</p>
+        <p>No hay discos creados.</p>
       ) : (
         <div className="disks-grid">
           {Object.entries(disks).map(([diskPath, info]) => {
             const diskName = diskPath.split("/").pop();
+            const isExpanded = expandedDisk === diskPath;
+
             return (
-              <button
-                key={diskPath}
-                className="disk-card"
-                onClick={() => handleDiskClick(diskPath)}
-              >
-                <img src={diskImage} alt="Disco" className="disk-image" />
-                <h2>{diskName}</h2> {/* Muestra solo el nombre del archivo */}
-                <p><strong>Path:</strong> {info.Path}</p>
-                <p><strong>Size:</strong> {info.Size} {info.Unit}</p>
-                <p><strong>Fit:</strong> {info.Fit}</p>
-                <ul>
-                  {info.Partitions.length > 0 ? (
-                    info.Partitions.map((partition, index) => (
-                      <li key={index}>
-                        <strong>Partición:</strong> {partition.Name} - <strong>ID:</strong> {partition.ID}
-                      </li>
-                    ))
-                  ) : (
-                    <li>No hay particiones</li>
-                  )}
-                </ul>
-              </button>
+              <div key={diskPath} className="disk-card">
+                {/* Button with image and disk name */}
+                <button
+                  className="disk-button"
+                  onClick={() => handleDiskClick(diskPath)}
+                >
+                  <img src={diskImage} alt="Disco" className="disk-image" />
+                  <span className="disk-name">{diskName}</span>
+                </button>
+
+                {/* Show disk info if it is expanded*/}
+                {isExpanded && (
+                  <div className="disk-info">
+                    <p>
+                      <strong>Path:</strong> {info.Path}
+                    </p>
+                    <p>
+                      <strong>Size:</strong> {info.SizeWithUnit || `${info.Size} ${info.Unit}`}
+                    </p>
+                    <p>
+                      <strong>Fit:</strong> {info.Fit}
+                    </p>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

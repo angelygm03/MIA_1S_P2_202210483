@@ -3,6 +3,8 @@ package main
 import (
 	"Proyecto2/backend/DiskCommands"
 	"Proyecto2/backend/DiskControl"
+	"Proyecto2/backend/DiskStruct"
+	"Proyecto2/backend/FileManagement"
 	"Proyecto2/backend/FileSystem"
 	"Proyecto2/backend/UserManagement"
 	"encoding/json"
@@ -704,9 +706,39 @@ func listCreatedDisksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert the data to JSON
+	// Get the created disks
+	createdDisks := DiskControl.GetCreatedDisks()
+
+	for path, diskInfo := range createdDisks {
+		file, err := FileManagement.OpenFile(path)
+		if err != nil {
+			fmt.Printf("Error al abrir el disco %s: %v\n", path, err)
+			continue
+		}
+		defer file.Close()
+
+		var mbr DiskStruct.MRB
+		if err := FileManagement.ReadObject(file, &mbr, 0); err != nil {
+			fmt.Printf("Error al leer el MBR del disco %s: %v\n", path, err)
+			continue
+		}
+
+		var sizeWithUnit string
+		if diskInfo.Unit == "k" {
+			sizeWithUnit = fmt.Sprintf("%d k", diskInfo.Size/1024)
+		} else if diskInfo.Unit == "m" {
+			sizeWithUnit = fmt.Sprintf("%d m", diskInfo.Size/(1024*1024))
+		} else {
+			sizeWithUnit = fmt.Sprintf("%d b", diskInfo.Size)
+		}
+
+		// Add the size with unit to the disk info
+		diskInfo.SizeWithUnit = sizeWithUnit
+		createdDisks[path] = diskInfo
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(DiskControl.GetCreatedDisks()); err != nil {
+	if err := json.NewEncoder(w).Encode(createdDisks); err != nil {
 		http.Error(w, "Error al generar JSON", http.StatusInternalServerError)
 	}
 }

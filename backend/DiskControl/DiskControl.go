@@ -999,11 +999,12 @@ func MarkPartitionAsLoggedOut(id string) {
 }
 
 type DiskInfo struct {
-	Path       string
-	Size       int
-	Unit       string
-	Fit        string
-	Partitions []MountedPartition // Mounted partitions
+	Path         string
+	Size         int
+	Unit         string
+	Fit          string
+	Partitions   []MountedPartition // Mounted partitions
+	SizeWithUnit string
 }
 
 // Global variable to store created disks
