@@ -137,20 +137,20 @@ func removeDisk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify if the file exists
 	if _, err := os.Stat(req.Path); os.IsNotExist(err) {
 		fmt.Println("Error: El archivo no existe en la ruta especificada")
 		http.Error(w, "Disk not found", http.StatusNotFound)
 		return
 	}
 
-	// Remove the file
 	err := os.Remove(req.Path)
 	if err != nil {
 		fmt.Println("Error al eliminar el archivo:", err)
 		http.Error(w, "Error deleting disk", http.StatusInternalServerError)
 		return
 	}
+
+	delete(DiskControl.GetCreatedDisks(), req.Path)
 
 	fmt.Println("Archivo eliminado exitosamente:", req.Path)
 	w.WriteHeader(http.StatusOK)

@@ -15,22 +15,23 @@ function DiskViewer({ onSelectDisk }) {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-
+  
         if (!response.ok) {
           throw new Error("Error al obtener la lista de discos");
         }
-
+  
         const data = await response.json();
-        setDisks(data); //Overwrite disks with the new data
+        setDisks(data); // Actualiza la lista de discos con los datos del servidor
       } catch (error) {
         console.error("Error al obtener discos:", error);
+        setDisks([]); // Limpia la lista de discos si hay un error
       }
     };
-
+  
     fetchDisks();
-
+  
     const interval = setInterval(fetchDisks, 3000);
-
+  
     return () => clearInterval(interval);
   }, []);
 
