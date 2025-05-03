@@ -19,6 +19,9 @@ function Navbar() {
           <Link to="/partitions" className="navbar-link">
             Particiones
           </Link>
+          <Link to="/files" className="navbar-link">
+            Archivos
+          </Link>
         </div>
       </div>
     </nav>

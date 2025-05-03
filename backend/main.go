@@ -7,6 +7,7 @@ import (
 	"Proyecto2/backend/FileManagement"
 	"Proyecto2/backend/FileSystem"
 	"Proyecto2/backend/UserManagement"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -806,6 +807,138 @@ func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func listFilesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "El parámetro 'path' es obligatorio.", http.StatusBadRequest)
+		return
+	}
+
+	// Get the mounted partitions
+	mountedPartitions := DiskControl.GetMountedPartitions()
+	var filepath string
+	var partitionFound bool
+
+	for _, partitions := range mountedPartitions {
+		for _, partition := range partitions {
+			if partition.LoggedIn {
+				filepath = partition.Path
+				partitionFound = true
+				break
+			}
+		}
+		if partitionFound {
+			break
+		}
+	}
+
+	if !partitionFound {
+		http.Error(w, "No hay ninguna partición activa.", http.StatusBadRequest)
+		return
+	}
+
+	// Open bin file
+	file, err := FileManagement.OpenFile(filepath)
+	if err != nil {
+		http.Error(w, "No se pudo abrir el archivo del disco.", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Read the MBR
+	var TempMBR DiskStruct.MRB
+	if err := FileManagement.ReadObject(file, &TempMBR, 0); err != nil {
+		http.Error(w, "No se pudo leer el MBR.", http.StatusInternalServerError)
+		return
+	}
+
+	// Read the superblock
+	var tempSuperblock DiskStruct.Superblock
+	for i := 0; i < 4; i++ {
+		if TempMBR.Partitions[i].Status[0] == '1' { // Active partition
+			if err := FileManagement.ReadObject(file, &tempSuperblock, int64(TempMBR.Partitions[i].Start)); err != nil {
+				http.Error(w, "No se pudo leer el Superblock.", http.StatusInternalServerError)
+				return
+			}
+			break
+		}
+	}
+
+	// Find the inode of the folder
+	indexInode := UserManagement.InitSearch(path, file, tempSuperblock)
+	if indexInode == -1 {
+		http.Error(w, "No se encontró la carpeta especificada.", http.StatusNotFound)
+		return
+	}
+
+	var crrInode DiskStruct.Inode
+	if err := FileManagement.ReadObject(file, &crrInode, int64(tempSuperblock.S_inode_start+indexInode*int32(binary.Size(DiskStruct.Inode{})))); err != nil {
+		http.Error(w, "No se pudo leer el Inodo de la carpeta.", http.StatusInternalServerError)
+		return
+	}
+
+	// Read the folder blocks
+	items := []map[string]string{}
+	for _, block := range crrInode.I_block {
+		if block == -1 {
+			continue
+		}
+
+		var folderBlock DiskStruct.Folderblock
+		if err := FileManagement.ReadObject(file, &folderBlock, int64(tempSuperblock.S_block_start+block*int32(binary.Size(DiskStruct.Folderblock{})))); err != nil {
+			http.Error(w, "No se pudo leer el bloque de carpeta.", http.StatusInternalServerError)
+			return
+		}
+
+		for _, content := range folderBlock.B_content {
+			if content.B_inodo == -1 {
+				continue
+			}
+
+			itemName := strings.Trim(string(content.B_name[:]), " \t\n\r\x00")
+			fmt.Printf("Elemento encontrado: '%s'\n", itemName)
+
+			if itemName == "." || itemName == ".." || itemName == "" {
+				fmt.Printf("Elemento omitido: '%s'\n", itemName)
+				continue
+			}
+
+			var itemInode DiskStruct.Inode
+			if err := FileManagement.ReadObject(file, &itemInode, int64(tempSuperblock.S_inode_start+content.B_inodo*int32(binary.Size(DiskStruct.Inode{})))); err != nil {
+				fmt.Printf("Error al leer el inodo del elemento '%s': %v\n", itemName, err)
+				continue
+			}
+
+			itemType := "file"
+			if itemInode.I_type[0] == '0' {
+				itemType = "folder"
+			}
+
+			fmt.Printf("Elemento agregado: '%s', Tipo: '%s'\n", itemName, itemType)
+
+			items = append(items, map[string]string{
+				"name":        itemName,
+				"type":        itemType,
+				"permissions": string(itemInode.I_perm[:]),
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(items); err != nil {
+		http.Error(w, "Error al generar JSON.", http.StatusInternalServerError)
+	}
+}
+
 func recoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -898,6 +1031,7 @@ func main() {
 	mux.HandleFunc("/recovery", recoveryHandler)
 	mux.HandleFunc("/loss", lossHandler)
 	mux.HandleFunc("/list-partitions", listPartitionsHandler)
+	mux.HandleFunc("/list-files", listFilesHandler)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))
