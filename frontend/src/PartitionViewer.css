@@ -1,0 +1,74 @@
+.partition-viewer-container {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .partitions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .partition-card {
+    background-color: transparent;
+    border: 1px solid transparent; 
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    color: #ffffff;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; 
+    flex-direction: column;
+    align-items: center; 
+  }
+  
+  .partition-info {
+    margin-top: 10px;
+    padding: 10px;
+    margin: 1px 0;
+    line-height: 1;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.9); 
+    color: #ffffff;
+    text-align: left;
+    width: 100%; 
+  }
+  
+  .partition-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  }
+  
+  .partition-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .partition-image {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+  }
+  
+  .partition-name {
+    margin-top: 5px;
+    font-size: 18px;
+    color: #ffffff;
+    text-align: center;
+  }
+  
+  .partition-info {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px;
+    border-radius: 5px;
+    background-color: transparent;
+    color: #ffffff;
+    text-align: left;
+  }

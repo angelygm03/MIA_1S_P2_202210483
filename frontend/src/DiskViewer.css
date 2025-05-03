@@ -12,21 +12,21 @@
 }
 
 .disk-card {
-    background-color: transparent; /* Fondo transparente */
-    border: 1px solid transparent; /* Sin borde visible */
+    background-color: transparent; 
+    border: 1px solid transparent;
     border-radius: 8px;
     padding: 15px;
     text-align: center;
-    box-shadow: none; /* Elimina la sombra */
+    box-shadow: none;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     color: #efeded;
     overflow: hidden; 
     text-overflow: ellipsis; 
     white-space: nowrap; 
-    display: flex; /* Cambiar a flexbox */
-    flex-direction: column; /* Apilar elementos verticalmente */
-    align-items: center; /* Centrar horizontalmente */
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
 }
 
 .disk-card p {
@@ -85,12 +85,14 @@
   .disk-info {
     margin-top: 10px;
     padding: 10px;
+    margin: 1px 0;
+    line-height: 1;
     border: 8px;
     border-radius: 5px;
-    background-color: transparent; /* Fondo oscuro semitransparente */
-    color: #ffffff; /* Texto blanco para contraste */
-    width: 100%; /* Asegura que el contenedor ocupe todo el ancho disponible */
-    text-align: center; /* Centra el texto dentro del contenedor */
+    background-color: transparent; 
+    color: #ffffff; 
+    width: 100%; 
+    text-align: center; 
 }
 
   .partition-item {
@@ -106,10 +108,10 @@
   .disk-name {
     margin-top: 5px;
     font-size: 20px;
-    color: #dbcfcf; /* Cambia el color si es necesario */
+    color: #dbcfcf;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100px; /* Ajusta el ancho máximo si es necesario */
+    max-width: 100px;
   }

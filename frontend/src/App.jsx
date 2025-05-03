@@ -4,6 +4,7 @@ import './App.css';
 import Navbar from "./Navbar";
 import LoginForm from "./LoginForm";
 import DiskViewer from "./DiskViewer";
+import PartitionViewer from "./PartitionViewer";
 
 function App() {
   const [input, setInput] = useState('');
@@ -533,6 +534,7 @@ function App() {
   
             {/* Ruta para el formulario de login */}
             <Route path="/login" element={<LoginForm />} />
+            <Route path="/partitions" element={<PartitionViewer />} />
           </Routes>
         </div>
       </Router>

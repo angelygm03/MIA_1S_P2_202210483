@@ -16,6 +16,9 @@ function Navbar() {
           <Link to="/login" className="navbar-link">
             Login
           </Link>
+          <Link to="/partitions" className="navbar-link">
+            Particiones
+          </Link>
         </div>
       </div>
     </nav>

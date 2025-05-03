@@ -743,6 +743,69 @@ func listCreatedDisksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	partitions := []map[string]interface{}{}
+
+	// Iterate over the created disks
+	for path := range DiskControl.GetCreatedDisks() {
+		file, err := FileManagement.OpenFile(path)
+		if err != nil {
+			fmt.Printf("Error al abrir el disco %s: %v\n", path, err)
+			continue
+		}
+		defer file.Close()
+
+		var mbr DiskStruct.MRB
+		if err := FileManagement.ReadObject(file, &mbr, 0); err != nil {
+			fmt.Printf("Error al leer el MBR del disco %s: %v\n", path, err)
+			continue
+		}
+
+		// Find the partitions in the MBR
+		for _, partition := range mbr.Partitions {
+			if partition.Size > 0 {
+				var partitionType string
+				switch string(partition.Type[:]) {
+				case "p":
+					partitionType = "Primaria"
+				case "e":
+					partitionType = "Extendida"
+				default:
+					partitionType = "Desconocido"
+				}
+
+				partitions = append(partitions, map[string]interface{}{
+					"Name":   string(partition.Name[:]),
+					"Path":   path,
+					"Size":   partition.Size,
+					"Fit":    string(partition.Fit[:]),
+					"Type":   partitionType,
+					"Status": string(partition.Status[:]),
+				})
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(partitions); err != nil {
+		http.Error(w, "Error al generar JSON", http.StatusInternalServerError)
+	}
+}
+
 func recoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -834,6 +897,7 @@ func main() {
 	mux.HandleFunc("/list-disks", listCreatedDisksHandler)
 	mux.HandleFunc("/recovery", recoveryHandler)
 	mux.HandleFunc("/loss", lossHandler)
+	mux.HandleFunc("/list-partitions", listPartitionsHandler)
 
 	fmt.Println("Servidor corriendo en http://localhost:8080")
 	http.ListenAndServe(":8080", enableCORS(mux))
