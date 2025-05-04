@@ -5,7 +5,7 @@ import diskImage from "./assets/hdd.png";
 
 function DiskViewer({ onSelectDisk }) {
   const [disks, setDisks] = useState([]);
-  const [expandedDisk, setExpandedDisk] = useState(null); // State to track which disk is expanded
+  const [expandedDisk, setExpandedDisk] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,33 +15,32 @@ function DiskViewer({ onSelectDisk }) {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-  
+
         if (!response.ok) {
           throw new Error("Error al obtener la lista de discos");
         }
-  
+
         const data = await response.json();
-        setDisks(data); // Actualiza la lista de discos con los datos del servidor
+        setDisks(data);
       } catch (error) {
         console.error("Error al obtener discos:", error);
-        setDisks([]); // Limpia la lista de discos si hay un error
+        setDisks([]);
       }
     };
-  
+
     fetchDisks();
-  
+
     const interval = setInterval(fetchDisks, 3000);
-  
+
     return () => clearInterval(interval);
   }, []);
 
   const handleDiskClick = (diskPath) => {
-    setExpandedDisk(expandedDisk === diskPath ? null : diskPath); // Alternar entre expandido y colapsado
+    setExpandedDisk(expandedDisk === diskPath ? null : diskPath);
   };
 
-  const handlePartitionClick = (partition) => {
-    onSelectDisk(partition);
-    navigate("/");
+  const handleViewPartitions = (diskPath) => {
+    navigate(`/partitions?disk=${encodeURIComponent(diskPath)}`);
   };
 
   return (
@@ -57,7 +56,6 @@ function DiskViewer({ onSelectDisk }) {
 
             return (
               <div key={diskPath} className="disk-card">
-                {/* Button with image and disk name */}
                 <button
                   className="disk-button"
                   onClick={() => handleDiskClick(diskPath)}
@@ -66,7 +64,6 @@ function DiskViewer({ onSelectDisk }) {
                   <span className="disk-name">{diskName}</span>
                 </button>
 
-                {/* Show disk info if it is expanded*/}
                 {isExpanded && (
                   <div className="disk-info">
                     <p>
@@ -78,6 +75,12 @@ function DiskViewer({ onSelectDisk }) {
                     <p>
                       <strong>Fit:</strong> {info.Fit}
                     </p>
+                    <button
+                      className="view-partitions-button"
+                      onClick={() => handleViewPartitions(diskPath)}
+                    >
+                      Ver Particiones
+                    </button>
                   </div>
                 )}
               </div>

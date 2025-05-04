@@ -759,10 +759,15 @@ func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	diskPath := r.URL.Query().Get("disk")
 	partitions := []map[string]interface{}{}
 
 	// Iterate over the created disks
 	for path := range DiskControl.GetCreatedDisks() {
+		if diskPath != "" && path != diskPath {
+			continue
+		}
+
 		file, err := FileManagement.OpenFile(path)
 		if err != nil {
 			fmt.Printf("Error al abrir el disco %s: %v\n", path, err)
@@ -776,7 +781,6 @@ func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Find the partitions in the MBR
 		for _, partition := range mbr.Partitions {
 			if partition.Size > 0 {
 				var partitionType string
@@ -790,12 +794,12 @@ func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 				partitions = append(partitions, map[string]interface{}{
-					"Name":   string(partition.Name[:]),
+					"Name":   strings.Trim(string(partition.Name[:]), "\x00"),
 					"Path":   path,
 					"Size":   partition.Size,
-					"Fit":    string(partition.Fit[:]),
+					"Fit":    strings.Trim(string(partition.Fit[:]), "\x00"),
 					"Type":   partitionType,
-					"Status": string(partition.Status[:]),
+					"Status": strings.Trim(string(partition.Status[:]), "\x00"),
 				})
 			}
 		}
