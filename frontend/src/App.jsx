@@ -502,7 +502,7 @@ function App() {
               path="/"
               element={
                 <>
-                  <h1>Sistema de Archivos EXT2</h1>
+                  <h1>Sistema de Archivos EXT2 y EXT3</h1>
                   {selectedDisk && <p>Disco seleccionado: {selectedDisk}</p>}
                   <div className="textarea-container">
                     <textarea

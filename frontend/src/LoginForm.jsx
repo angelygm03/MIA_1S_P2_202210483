@@ -11,21 +11,23 @@ function LoginForm() {
 
   const handleLogin = async () => {
     try {
+      console.log("Datos enviados al backend:", { id, user, password });
+  
       const response = await fetch('http://localhost:8080/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, user, password }),
       });
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         setError(`Error: ${errorText}`);
         return;
       }
-
+  
       const message = await response.text();
-      alert(message); // Mostrar mensaje de éxito
-      navigate('/'); // Redirigir a la página principal
+      alert(message); 
+      navigate('/'); 
     } catch (err) {
       setError(`Error al iniciar sesión: ${err.message}`);
     }
