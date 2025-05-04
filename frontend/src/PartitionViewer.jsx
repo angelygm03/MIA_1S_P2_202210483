@@ -75,7 +75,7 @@ function PartitionViewer() {
                       <strong>Disco:</strong> {diskName}
                     </p>
                     <p>
-                      <strong>Path:</strong> {partition.Path}
+                      <strong>Id:</strong> {partition.Id}
                     </p>
                     <p>
                       <strong>Tamaño:</strong> {partition.Size} bytes

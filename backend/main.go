@@ -800,6 +800,7 @@ func listPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 					"Fit":    strings.Trim(string(partition.Fit[:]), "\x00"),
 					"Type":   partitionType,
 					"Status": strings.Trim(string(partition.Status[:]), "\x00"),
+					"Id":     strings.Trim(string(partition.Id[:]), "\x00"),
 				})
 			}
 		}
